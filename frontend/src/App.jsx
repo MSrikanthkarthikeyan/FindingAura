@@ -11,6 +11,7 @@ import Habits from './pages/Habits';
 import Analytics from './pages/Analytics';
 import Achievements from './pages/Achievements';
 import Templates from './pages/Templates';
+import Pomodoro from './pages/Pomodoro';
 
 function App() {
     return (
@@ -53,6 +54,11 @@ function App() {
                         <Route path="/templates" element={
                             <ProtectedRoute>
                                 <Templates />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/pomodoro" element={
+                            <ProtectedRoute>
+                                <Pomodoro />
                             </ProtectedRoute>
                         } />
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />

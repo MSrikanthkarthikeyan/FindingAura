@@ -1,22 +1,40 @@
-import { motion } from 'framer-motion';
-import { CheckCircle2, Circle, Clock, Trophy } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CheckCircle2, Circle, Clock, Trophy, Play } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 const QuestCard = ({ quest, onUpdate }) => {
+    const navigate = useNavigate();
     const [isExpanded, setIsExpanded] = useState(false);
+    const [completingTask, setCompletingTask] = useState(null);
 
     const toggleTask = async (taskIndex) => {
+        const newCompleted = !quest.tasks[taskIndex].completed;
+
+        // Show animation
+        setCompletingTask(taskIndex);
+
         try {
-            const newCompleted = !quest.tasks[taskIndex].completed;
             await api.put(`/quests/${quest._id}`, {
                 taskIndex,
                 completed: newCompleted
             });
-            onUpdate();
+
+            // Keep animation visible for a moment
+            setTimeout(() => {
+                setCompletingTask(null);
+                onUpdate();
+            }, 600);
         } catch (error) {
             console.error('Failed to update task:', error);
+            setCompletingTask(null);
         }
+    };
+
+    const startPomodoro = (task) => {
+        const duration = parseInt(task.estimatedTime) || 25;
+        navigate(`/pomodoro?task=${quest._id}&name=${encodeURIComponent(task.title)}&duration=${duration}`);
     };
 
     const completeQuest = async () => {
@@ -102,22 +120,58 @@ const QuestCard = ({ quest, onUpdate }) => {
                         {quest.tasks.map((task, index) => (
                             <motion.div
                                 key={index}
-                                whileHover={{ x: 4 }}
+                                animate={completingTask === index ? {
+                                    x: [0, 8, -8, 4, 0],
+                                    backgroundColor: [
+                                        'var(--bg-tertiary)',
+                                        'rgba(16, 184, 166, 0.2)',
+                                        'rgba(16, 184, 166, 0.3)',
+                                        'rgba(16, 184, 166, 0.2)',
+                                        task.completed ? 'rgba(16, 184, 166, 0.1)' : 'var(--bg-tertiary)'
+                                    ]
+                                } : {}}
+                                transition={{ duration: 0.6, ease: 'easeInOut' }}
                                 className="flex"
                                 style={{
                                     gap: '0.75rem',
                                     padding: '0.75rem',
                                     background: task.completed ? 'rgba(20, 184, 166, 0.1)' : 'var(--bg-tertiary)',
                                     borderRadius: 'var(--radius-md)',
-                                    cursor: 'pointer'
+                                    position: 'relative'
                                 }}
-                                onClick={() => toggleTask(index)}
                             >
-                                {task.completed ? (
-                                    <CheckCircle2 size={20} color="var(--accent)" style={{ flexShrink: 0 }} />
-                                ) : (
-                                    <Circle size={20} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
-                                )}
+                                {/* Checkmark Button */}
+                                <motion.div
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => toggleTask(index)}
+                                    style={{ cursor: 'pointer', flexShrink: 0 }}
+                                >
+                                    <AnimatePresence mode="wait">
+                                        {task.completed ? (
+                                            <motion.div
+                                                key="checked"
+                                                initial={{ scale: 0, rotate: -180 }}
+                                                animate={{ scale: 1, rotate: 0 }}
+                                                exit={{ scale: 0, rotate: 180 }}
+                                                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                                            >
+                                                <CheckCircle2 size={20} color="var(--accent)" />
+                                            </motion.div>
+                                        ) : (
+                                            <motion.div
+                                                key="unchecked"
+                                                initial={{ scale: 0 }}
+                                                animate={{ scale: 1 }}
+                                                exit={{ scale: 0 }}
+                                            >
+                                                <Circle size={20} color="var(--text-secondary)" />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </motion.div>
+
+                                {/* Task Content */}
                                 <div style={{ flex: 1 }}>
                                     <div style={{
                                         fontWeight: 500,
@@ -134,6 +188,49 @@ const QuestCard = ({ quest, onUpdate }) => {
                                         {task.estimatedTime}
                                     </div>
                                 </div>
+
+                                {/* Pomodoro Button */}
+                                {!task.completed && (
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            startPomodoro(task);
+                                        }}
+                                        className="btn btn-secondary"
+                                        style={{
+                                            padding: '0.5rem 0.75rem',
+                                            fontSize: '0.75rem',
+                                            alignSelf: 'center'
+                                        }}
+                                    >
+                                        <Play size={14} />
+                                        Start
+                                    </motion.button>
+                                )}
+
+                                {/* Completion Flash Effect */}
+                                <AnimatePresence>
+                                    {completingTask === index && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.5 }}
+                                            animate={{ opacity: 1, scale: 2 }}
+                                            exit={{ opacity: 0, scale: 3 }}
+                                            transition={{ duration: 0.6 }}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '50%',
+                                                left: '50%',
+                                                transform: 'translate(-50%, -50%)',
+                                                fontSize: '2rem',
+                                                pointerEvents: 'none'
+                                            }}
+                                        >
+                                            ✓
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </motion.div>
                         ))}
                     </div>

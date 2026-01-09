@@ -59,6 +59,15 @@ const habitSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    lastLoggedDate: {
+        type: Date,
+        default: null
+    },
+    calendarData: [{
+        date: Date,
+        logged: Boolean,
+        streakDay: Number
+    }],
     createdAt: {
         type: Date,
         default: Date.now

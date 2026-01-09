@@ -46,9 +46,15 @@ const userSchema = new mongoose.Schema({
         totalQuestsCompleted: { type: Number, default: 0 },
         currentStreak: { type: Number, default: 0 },
         longestStreak: { type: Number, default: 0 },
-        level: { type: Number, default: 1 },
+        level: { type: Number, default: 0 },
         xp: { type: Number, default: 0 },
         lastQuestCompletedDate: Date
+    },
+    pomodoroSettings: {
+        sessionDuration: { type: Number, default: 25 },  // minutes
+        shortBreak: { type: Number, default: 5 },
+        longBreak: { type: Number, default: 15 },
+        sessionsUntilLongBreak: { type: Number, default: 4 }
     },
     createdAt: {
         type: Date,
