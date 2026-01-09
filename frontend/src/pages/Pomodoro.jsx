@@ -146,9 +146,14 @@ const Pomodoro = () => {
                             <Zap size={24} color={sessionType === 'work' ? '#6366f1' : '#14b8a6'} />
                             <h2>Pomodoro Timer</h2>
                         </div>
-                        <button onClick={() => navigate('/quests')} className="btn btn-ghost">
-                            <X size={20} />
-                        </button>
+                        <div className="flex" style={{ gap: '0.5rem' }}>
+                            <button onClick={() => navigate('/pomodoro/settings')} className="btn btn-secondary">
+                                Settings
+                            </button>
+                            <button onClick={() => navigate('/quests')} className="btn btn-ghost">
+                                <X size={20} />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

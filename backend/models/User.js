@@ -56,6 +56,11 @@ const userSchema = new mongoose.Schema({
         longBreak: { type: Number, default: 15 },
         sessionsUntilLongBreak: { type: Number, default: 4 }
     },
+    pomodoroStats: {
+        totalSessions: { type: Number, default: 0 },
+        todaySessions: { type: Number, default: 0 },
+        lastSessionDate: Date
+    },
     createdAt: {
         type: Date,
         default: Date.now

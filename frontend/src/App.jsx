@@ -12,6 +12,7 @@ import Analytics from './pages/Analytics';
 import Achievements from './pages/Achievements';
 import Templates from './pages/Templates';
 import Pomodoro from './pages/Pomodoro';
+import PomodoroSettings from './pages/PomodoroSettings';
 
 function App() {
     return (
@@ -59,6 +60,11 @@ function App() {
                         <Route path="/pomodoro" element={
                             <ProtectedRoute>
                                 <Pomodoro />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/pomodoro/settings" element={
+                            <ProtectedRoute>
+                                <PomodoroSettings />
                             </ProtectedRoute>
                         } />
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />

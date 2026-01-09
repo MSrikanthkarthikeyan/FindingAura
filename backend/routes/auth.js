@@ -120,4 +120,26 @@ router.put('/update-settings', protect, async (req, res) => {
     }
 });
 
+// @route   PUT /api/auth/pomodoro-settings
+// @desc    Update Pomodoro settings
+// @access  Private
+router.put('/pomodoro-settings', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+
+        if (req.body) {
+            user.pomodoroSettings = {
+                ...user.pomodoroSettings,
+                ...req.body
+            };
+        }
+
+        await user.save();
+        res.json(user);
+    } catch (error) {
+        console.error('Pomodoro settings update error:', error);
+        res.status(500).json({ message: 'Error updating Pomodoro settings' });
+    }
+});
+
 export default router;
