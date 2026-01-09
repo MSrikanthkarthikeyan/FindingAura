@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Sparkles, Plus, Calendar, CalendarDays, CalendarRange, CalendarClock, ArrowLeft, Library } from 'lucide-react';
 import api from '../services/api';
 import QuestCard from '../components/QuestCard';
+import QuestGenerationWizard from '../components/QuestGenerationWizard';
 
 const QUEST_TYPES = [
     { value: 'daily', label: 'Daily', icon: Calendar },
@@ -17,7 +18,7 @@ const QuestView = () => {
     const [activeTab, setActiveTab] = useState('daily');
     const [quests, setQuests] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [generating, setGenerating] = useState(false);
+    const [wizardOpen, setWizardOpen] = useState(false);
 
     useEffect(() => {
         fetchQuests();
@@ -35,17 +36,8 @@ const QuestView = () => {
         }
     };
 
-    const generateQuest = async () => {
-        setGenerating(true);
-        try {
-            await api.post('/quests/generate', { type: activeTab, count: 1 });
-            fetchQuests();
-        } catch (error) {
-            console.error('Failed to generate quest:', error);
-            alert('Failed to generate quest. Please try again.');
-        } finally {
-            setGenerating(false);
-        }
+    const handleQuestCreated = (newQuest) => {
+        setQuests([newQuest, ...quests]);
     };
 
     return (
@@ -64,23 +56,22 @@ const QuestView = () => {
                             <Sparkles size={24} color="#6366f1" />
                             <h2>Quests</h2>
                         </div>
-                        <button
-                            onClick={generateQuest}
-                            className="btn btn-primary"
-                            disabled={generating}
-                        >
-                            {generating ? (
-                                <>
-                                    <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }}></div>
-                                    Generating...
-                                </>
-                            ) : (
-                                <>
-                                    <Plus size={20} />
-                                    Generate Quest
-                                </>
-                            )}
-                        </button>
+                        <div className="flex" style={{ gap: '0.75rem' }}>
+                            <button
+                                onClick={() => navigate('/templates')}
+                                className="btn btn-secondary"
+                            >
+                                <Library size={20} />
+                                Browse Templates
+                            </button>
+                            <button
+                                onClick={() => setWizardOpen(true)}
+                                className="btn btn-primary"
+                            >
+                                <Plus size={20} />
+                                Generate Quest
+                            </button>
+                        </div>
                     </div>
 
                     {/* Tabs */}
@@ -122,28 +113,26 @@ const QuestView = () => {
                         <Sparkles size={64} color="var(--text-secondary)" style={{ margin: '0 auto 1.5rem' }} />
                         <h3 style={{ marginBottom: '0.75rem' }}>No {activeTab} quests yet</h3>
                         <p className="text-secondary" style={{ marginBottom: '2rem' }}>
-                            Generate your first AI-powered {activeTab} quest to get started!
+                            Create your first {activeTab} quest with our AI wizard!
                         </p>
                         <button
-                            onClick={generateQuest}
+                            onClick={() => setWizardOpen(true)}
                             className="btn btn-primary"
-                            disabled={generating}
                         >
-                            {generating ? (
-                                <>
-                                    <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }}></div>
-                                    Generating...
-                                </>
-                            ) : (
-                                <>
-                                    <Plus size={20} />
-                                    Generate {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Quest
-                                </>
-                            )}
+                            <Plus size={20} />
+                            Generate {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Quest
                         </button>
                     </motion.div>
                 )}
             </div>
+
+            {/* Quest Generation Wizard */}
+            <QuestGenerationWizard
+                isOpen={wizardOpen}
+                onClose={() => setWizardOpen(false)}
+                questType={activeTab}
+                onQuestCreated={handleQuestCreated}
+            />
         </div>
     );
 };

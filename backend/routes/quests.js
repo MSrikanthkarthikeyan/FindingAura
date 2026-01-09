@@ -43,8 +43,76 @@ const calculateXP = (type, difficulty) => {
     return Math.floor(baseXP[type] * (multiplier[difficulty] || 1));
 };
 
+// @route   POST /api/quests/generate-with-inputs
+// @desc    Generate quest with explicit user inputs (enhanced)
+// @access  Private
+router.post('/generate-with-inputs', protect, async (req, res) => {
+    try {
+        const { domain, specificGoal, difficulty, timeAvailable, constraints, preferences, questType } = req.body;
+
+        // Validation
+        if (!domain || !specificGoal || !questType) {
+            return res.status(400).json({
+                message: 'Missing required fields: domain, specificGoal, questType'
+            });
+        }
+
+        if (!['daily', 'weekly', 'monthly', 'yearly'].includes(questType)) {
+            return res.status(400).json({ message: 'Invalid quest type' });
+        }
+
+        const user = await User.findById(req.user._id);
+
+        // Generate quest using enhanced AI with user inputs
+        const generatedQuest = await aiService.generateQuestsWithInputs(user, {
+            domain,
+            specificGoal,
+            difficulty: difficulty || 'Medium',
+            timeAvailable: timeAvailable || '30',
+            constraints: constraints || '',
+            preferences: preferences || '',
+            questType
+        });
+
+        // Return preview first (don't save yet - user can edit)
+        if (req.query.preview === 'true') {
+            return res.json({
+                preview: generatedQuest,
+                isPreview: true
+            });
+        }
+
+        // Create quest if not preview
+        const quest = await Quest.create({
+            userId: user._id,
+            type: questType,
+            title: generatedQuest.title,
+            description: generatedQuest.description,
+            category: generatedQuest.category,
+            difficulty: generatedQuest.difficulty || difficulty || 'Medium',
+            tasks: generatedQuest.tasks,
+            endDate: calculateEndDate(questType),
+            xpReward: calculateXP(questType, generatedQuest.difficulty || difficulty || 'Medium'),
+            domain: generatedQuest.domain,
+            reasoning: generatedQuest.reasoning,
+            successCriteria: generatedQuest.successCriteria || [],
+            userInputs: {
+                specificGoal,
+                timeAvailable,
+                constraints,
+                preferences
+            }
+        });
+
+        res.status(201).json(quest);
+    } catch (error) {
+        console.error('Enhanced quest generation error:', error);
+        res.status(500).json({ message: 'Error generating quest', error: error.message });
+    }
+});
+
 // @route   POST /api/quests/generate
-// @desc    Generate new AI-powered quests
+// @desc    Generate new AI-powered quests (original method)
 // @access  Private
 router.post('/generate', protect, async (req, res) => {
     try {
@@ -153,6 +221,41 @@ router.put('/:id', protect, async (req, res) => {
         res.json(quest);
     } catch (error) {
         res.status(500).json({ message: 'Error updating quest' });
+    }
+});
+
+// @route   PUT /api/quests/:id/edit
+// @desc    Edit quest details (title, description, tasks, etc.)
+// @access  Private
+router.put('/:id/edit', protect, async (req, res) => {
+    try {
+        const quest = await Quest.findById(req.params.id);
+
+        if (!quest) {
+            return res.status(404).json({ message: 'Quest not found' });
+        }
+
+        if (quest.userId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        const { title, description, tasks, difficulty, successCriteria } = req.body;
+
+        if (title) quest.title = title;
+        if (description) quest.description = description;
+        if (tasks) quest.tasks = tasks;
+        if (difficulty) {
+            quest.difficulty = difficulty;
+            // Recalculate XP based on new difficulty
+            quest.xpReward = calculateXP(quest.type, difficulty);
+        }
+        if (successCriteria) quest.successCriteria = successCriteria;
+
+        await quest.save();
+        res.json(quest);
+    } catch (error) {
+        console.error('Quest edit error:', error);
+        res.status(500).json({ message: 'Error editing quest' });
     }
 });
 

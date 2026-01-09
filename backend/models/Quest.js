@@ -62,6 +62,24 @@ const questSchema = new mongoose.Schema({
         default: 0,
         min: 0,
         max: 100
+    },
+    // New fields for enhanced quest generation
+    domain: {
+        type: String,
+        default: null
+    },
+    reasoning: {
+        type: String,
+        default: null
+    },
+    successCriteria: [{
+        type: String
+    }],
+    userInputs: {
+        specificGoal: String,
+        timeAvailable: String,
+        constraints: String,
+        preferences: String
     }
 }, {
     timestamps: true
