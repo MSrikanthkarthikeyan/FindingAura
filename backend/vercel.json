@@ -11,11 +11,5 @@
             "src": "/(.*)",
             "dest": "server.js"
         }
-    ],
-    "env": {
-        "MONGODB_URI": "@mongodb_uri",
-        "GEMINI_API_KEY": "@gemini_api_key",
-        "JWT_SECRET": "@jwt_secret",
-        "NODE_ENV": "production"
-    }
+    ]
 }
