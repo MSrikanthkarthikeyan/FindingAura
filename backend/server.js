@@ -30,6 +30,25 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/achievements', achievementRoutes);
 app.use('/api/templates', templateRoutes);
 
+// Root route
+app.get('/', (req, res) => {
+    res.json({
+        message: 'FindingAura API',
+        version: '1.0',
+        status: 'running',
+        endpoints: {
+            health: '/api/health',
+            auth: '/api/auth',
+            quests: '/api/quests',
+            habits: '/api/habits',
+            analytics: '/api/analytics',
+            achievements: '/api/achievements',
+            templates: '/api/templates'
+        },
+        documentation: 'https://github.com/MSrikanthkarthikeyan/findingaura'
+    });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
     res.json({
