@@ -75,10 +75,60 @@ router.post('/generate-with-inputs', protect, async (req, res) => {
             questType
         });
 
+        // VALIDATION LAYER - Reality check before showing to user
+        const { validateQuest, rescopeQuest } = await import('../utils/questValidator.js');
+
+        const userContext = {
+            timeAvailable: parseInt(timeAvailable) || 30,
+            selectedDomain: domain,
+            energyLevel: req.body.energyLevel || 'Medium'
+        };
+
+        const validationResult = validateQuest(generatedQuest, userContext);
+
+        // If validation failed, try to auto-rescope
+        if (!validationResult.valid && validationResult.blockers.length > 0) {
+            const rescoped = rescopeQuest(generatedQuest, validationResult, userContext);
+
+            if (rescoped.autoFixed) {
+                // Use rescoped version
+                Object.assign(generatedQuest, rescoped.rescoped);
+                generatedQuest.validation = {
+                    validated: true,
+                    validatedAt: new Date(),
+                    score: 70, // Auto-rescoped gets lower score
+                    issues: validationResult.issues,
+                    autoRescoped: true,
+                    rescopeChanges: rescoped.changes
+                };
+            } else {
+                // Reject and return alternative
+                const { generateAlternative } = await import('../utils/questValidator.js');
+                const alternative = generateAlternative(generatedQuest, validationResult, userContext);
+
+                return res.status(400).json({
+                    valid: false,
+                    message: 'Quest validation failed',
+                    issues: validationResult.blockers,
+                    alternative: alternative
+                });
+            }
+        } else {
+            // Quest passed validation
+            generatedQuest.validation = {
+                validated: true,
+                validatedAt: new Date(),
+                score: validationResult.score,
+                issues: validationResult.issues,
+                autoRescoped: false
+            };
+        }
+
         // Return preview first (don't save yet - user can edit)
         if (req.query.preview === 'true') {
             return res.json({
                 preview: generatedQuest,
+                validation: generatedQuest.validation,
                 isPreview: true
             });
         }
@@ -102,7 +152,12 @@ router.post('/generate-with-inputs', protect, async (req, res) => {
                 timeAvailable,
                 constraints,
                 preferences
-            }
+            },
+            outputType: generatedQuest.outputType || null,
+            deliverable: generatedQuest.deliverable || null,
+            energyRequired: generatedQuest.energyRequired || 'Medium',
+            validation: generatedQuest.validation,
+            estimatedTime: parseInt(timeAvailable) || 30
         });
 
         res.status(201).json(quest);

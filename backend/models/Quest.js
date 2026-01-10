@@ -97,11 +97,49 @@ const questSchema = new mongoose.Schema({
             consecutiveDays: Number
         },
         impactScore: { type: Number, default: 0 },
-        isMainQuest: { type: Boolean, default: false }
+        isMainQuest: { type: Boolean, default: false },
+        confirmed: { type: Boolean, default: false },  // User confirmed intent
+        confirmedAt: Date
+    },
+    // Reality-aware quest fields
+    outputType: {
+        type: String,
+        enum: [
+            'WRITTEN_NOTE', 'CHECKLIST', 'EXERCISE_SET', 'METRIC_LOGGED',
+            'DECISION_MADE', 'FILE_CREATED', 'CODE_SNIPPET', 'PROTOTYPE',
+            'PLAN_CREATED', 'LIST_COMPILED', null
+        ],
+        default: null
+    },
+    deliverable: {
+        type: String,  // Concrete description of what user will produce
+        default: null
+    },
+    energyRequired: {
+        type: String,
+        enum: ['Low', 'Medium', 'High'],
+        default: 'Medium'
+    },
+    validation: {
+        validated: { type: Boolean, default: false },
+        validatedAt: Date,
+        score: { type: Number, default: 0 },  // 0-100 validation quality score
+        issues: [{
+            type: String,
+            severity: String,
+            message: String
+        }],
+        autoRescoped: { type: Boolean, default: false },
+        rescopeChanges: [String]
+    },
+    estimatedTime: {  // Total estimated minutes (not in tasks)
+        type: Number,
+        default: 30
     },
     skipped: { type: Boolean, default: false },
     skipReason: String,
-    timeTaken: Number  // actual minutes taken to complete
+    timeTaken: Number,  // actual minutes taken to complete
+    editCount: { type: Number, default: 0 }  // Track how many times user edited
 }, {
     timestamps: true
 });
