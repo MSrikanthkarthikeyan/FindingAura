@@ -61,6 +61,37 @@ const userSchema = new mongoose.Schema({
         todaySessions: { type: Number, default: 0 },
         lastSessionDate: Date
     },
+    questMemory: {
+        completedThemes: [{ type: String }],  // e.g., ['cardio', 'meditation', 'python']
+        avoidedThemes: [{ type: String }],    // e.g., ['early-morning', 'complex-math']
+        successPatterns: {
+            type: Map,
+            of: new mongoose.Schema({
+                totalAttempts: { type: Number, default: 0 },
+                completed: { type: Number, default: 0 },
+                rate: { type: Number, default: 0 },
+                preferredTime: { type: String },
+                averageCompletionTime: { type: Number },  // minutes
+                lastAttempt: Date
+            }, { _id: false }),
+            default: {}
+        },
+        recentCompletions: [{
+            questId: mongoose.Schema.Types.ObjectId,
+            domain: String,
+            difficulty: String,
+            completedAt: Date,
+            timeTaken: Number,  // minutes
+            skipped: { type: Boolean, default: false }
+        }],
+        adaptationNotes: [{
+            note: String,
+            createdAt: { type: Date, default: Date.now },
+            type: { type: String, enum: ['pattern', 'preference', 'skip', 'success'] }
+        }],
+        preferredDifficulty: { type: String, default: 'Medium' },
+        averageCompletionTime: { type: Number, default: 30 }  // minutes
+    },
     createdAt: {
         type: Date,
         default: Date.now

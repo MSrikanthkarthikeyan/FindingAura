@@ -80,7 +80,28 @@ const questSchema = new mongoose.Schema({
         timeAvailable: String,
         constraints: String,
         preferences: String
-    }
+    },
+    intentMapping: {
+        userSelections: {
+            domain: String,
+            specificGoal: String,
+            timeAvailable: String,
+            difficulty: String,
+            constraints: String
+        },
+        aiReasoning: String,
+        pastPatterns: {
+            domainSuccessRate: Number,
+            preferredTime: String,
+            lastCompletedInDomain: Date,
+            consecutiveDays: Number
+        },
+        impactScore: { type: Number, default: 0 },
+        isMainQuest: { type: Boolean, default: false }
+    },
+    skipped: { type: Boolean, default: false },
+    skipReason: String,
+    timeTaken: Number  // actual minutes taken to complete
 }, {
     timestamps: true
 });

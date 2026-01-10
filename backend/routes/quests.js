@@ -5,6 +5,7 @@ import Habit from '../models/Habit.js';
 import aiService from '../services/aiService.js';
 import { protect } from '../middleware/auth.js';
 import { checkAchievements } from './achievements.js';
+import { updateQuestMemory, getBehavioralInsights, calculateImpactScore } from '../utils/patternAnalysis.js';
 
 const router = express.Router();
 
@@ -315,15 +316,79 @@ router.post('/:id/complete', protect, async (req, res) => {
         }
 
         user.stats.lastQuestCompletedDate = new Date();
+
+        // Track completion in quest memory for pattern learning
+        const timeTaken = req.body.timeTaken || quest.tasks.reduce((sum, task) =>
+            sum + (parseInt(task.estimatedTime) || 0), 0
+        );
+
+        await updateQuestMemory(user, quest, {
+            completed: true,
+            skipped: false,
+            timeTaken: timeTaken
+        });
+
         await user.save();
 
         // Check for new achievements
         const newAchievements = await checkAchievements(req.user._id);
 
-        res.json({ quest, user, newAchievements });
+        // Get behavioral insights
+        const insights = getBehavioralInsights(user);
+
+        res.json({ quest, user, newAchievements, insights });
     } catch (error) {
         console.error('Complete quest error:', error);
         res.status(500).json({ message: 'Error completing quest' });
+    }
+});
+
+// @route   POST /api/quests/:id/skip
+// @desc    Skip quest (no penalty, track for adaptation)
+// @access  Private
+router.post('/:id/skip', protect, async (req, res) => {
+    try {
+        const quest = await Quest.findById(req.params.id);
+
+        if (!quest) {
+            return res.status(404).json({ message: 'Quest not found' });
+        }
+
+        if (quest.userId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        const { reason } = req.body;
+
+        quest.status = 'failed';
+        quest.skipped = true;
+        quest.skipReason = reason;
+        await quest.save();
+
+        // Update user quest memory - NO PENALTY, just learning
+        const user = await User.findById(req.user._id);
+
+        await updateQuestMemory(user, quest, {
+            completed: false,
+            skipped: true,
+            timeTaken: 0
+        });
+
+        await user.save();
+
+        // Generate gentler alternative suggestion
+        const { generateGentlerAlternative } = await import('../utils/patternAnalysis.js');
+        const suggestion = generateGentlerAlternative(quest);
+
+        res.json({
+            message: 'Quest skipped - no penalty! We\'ll suggest something lighter next time.',
+            quest,
+            suggestion,
+            encouragement: suggestion.encouragement[Math.floor(Math.random() * suggestion.encouragement.length)]
+        });
+    } catch (error) {
+        console.error('Skip quest error:', error);
+        res.status(500).json({ message: 'Error skipping quest' });
     }
 });
 
