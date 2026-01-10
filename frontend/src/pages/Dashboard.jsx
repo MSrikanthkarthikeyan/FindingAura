@@ -240,7 +240,7 @@ const Dashboard = () => {
                                 <QuestCard
                                     key={quest._id}
                                     quest={quest}
-                                    onUpdate={fetchOverview}
+                                    onUpdate={fetchDashboardData}
                                 />
                             ))}
                         </div>
