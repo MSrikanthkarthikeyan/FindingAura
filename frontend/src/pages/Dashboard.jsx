@@ -15,19 +15,32 @@ const Dashboard = () => {
     const { user, logout } = useContext(AuthContext);
     const { theme, toggleTheme } = useContext(ThemeContext);
     const [overview, setOverview] = useState(null);
+    const [mainQuest, setMainQuest] = useState(null);
+    const [insights, setInsights] = useState([]);
     const [loading, setLoading] = useState(true);
     const [menuOpen, setMenuOpen] = useState(false);
 
     useEffect(() => {
-        fetchOverview();
+        fetchDashboardData();
     }, []);
 
-    const fetchOverview = async () => {
+    const fetchDashboardData = async () => {
         try {
-            const response = await api.get('/analytics/overview');
-            setOverview(response.data);
+            // Fetch overview first (critical)
+            const overviewRes = await api.get('/analytics/overview');
+            setOverview(overviewRes.data);
+
+            // Try to fetch main quest (optional - don't break if fails)
+            try {
+                const mainQuestRes = await api.get('/quests/main-quest');
+                if (mainQuestRes.data?.mainQuest) {
+                    setMainQuest(mainQuestRes.data.mainQuest);
+                }
+            } catch (err) {
+                console.log('Main quest not available yet');
+            }
         } catch (error) {
-            console.error('Failed to fetch overview:', error);
+            console.error('Failed to fetch dashboard data:', error);
         } finally {
             setLoading(false);
         }
@@ -197,13 +210,16 @@ const Dashboard = () => {
                 {mainQuest && (
                     <div style={{ marginBottom: '2rem' }}>
                         <h3 style={{ marginBottom: '1rem' }}>🎯 Today's Priority</h3>
-                        <MainQuestCard quest={mainQuest} reasoning={insights.find(i => i.type === 'main-quest')?.action} />
+                        <MainQuestCard
+                            quest={mainQuest}
+                            reasoning={mainQuest.intentMapping?.aiReasoning || "Your highest-impact quest for today"}
+                        />
                     </div>
                 )}
 
                 {/* Momentum Widget */}
                 <div style={{ marginBottom: '2rem' }}>
-                    <MomentumWidget user={user} insights={insights.filter(i => i.type !== 'main-quest')} />
+                    <MomentumWidget user={user} insights={insights} />
                 </div>
 
                 {/* Recent Quests */}
