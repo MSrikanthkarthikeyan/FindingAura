@@ -7,6 +7,8 @@ import { ThemeContext } from '../context/ThemeContext';
 import api from '../services/api';
 import StatsCard from '../components/StatsCard';
 import QuestCard from '../components/QuestCard';
+import MainQuestCard from '../components/MainQuestCard';
+import MomentumWidget from '../components/MomentumWidget';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -189,6 +191,19 @@ const Dashboard = () => {
                         value={`${overview?.quests?.completionRate || 0}%`}
                         subtitle={`${overview?.quests?.total || 0} total quests`}
                     />
+                </div>
+
+                {/* Main Quest Section */}
+                {mainQuest && (
+                    <div style={{ marginBottom: '2rem' }}>
+                        <h3 style={{ marginBottom: '1rem' }}>🎯 Today's Priority</h3>
+                        <MainQuestCard quest={mainQuest} reasoning={insights.find(i => i.type === 'main-quest')?.action} />
+                    </div>
+                )}
+
+                {/* Momentum Widget */}
+                <div style={{ marginBottom: '2rem' }}>
+                    <MomentumWidget user={user} insights={insights.filter(i => i.type !== 'main-quest')} />
                 </div>
 
                 {/* Recent Quests */}

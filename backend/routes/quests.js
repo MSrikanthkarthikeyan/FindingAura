@@ -153,6 +153,71 @@ router.post('/generate', protect, async (req, res) => {
     }
 });
 
+// @route   GET /api/quests/main-quest
+// @desc    Get today's main quest (highest impact)
+// @access  Private
+router.get('/main-quest', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+
+        // Get all pending quests
+        const activeQuests = await Quest.find({
+            userId: req.user._id,
+            status: { $in: ['pending', 'in-progress'] }
+        }).sort({ createdAt: -1 });
+
+        if (activeQuests.length === 0) {
+            return res.json({ mainQuest: null });
+        }
+
+        // Calculate impact scores for all quests
+        const questsWithScores = activeQuests.map(quest => ({
+            quest,
+            score: calculateImpactScore(quest, user)
+        }));
+
+        // Sort by score and get top quest
+        questsWithScores.sort((a, b) => b.score - a.score);
+        const mainQuest = questsWithScores[0].quest;
+
+        // Mark as main quest
+        mainQuest.intentMapping = mainQuest.intentMapping || {};
+        mainQuest.intentMapping.isMainQuest = true;
+        mainQuest.intentMapping.impactScore = questsWithScores[0].score;
+        await mainQuest.save();
+
+        // Generate reasoning for why this is the main quest
+        const domain = mainQuest.domain || mainQuest.category;
+        const pattern = user.questMemory?.successPatterns?.get(domain);
+
+        let reasoning = '';
+        if (pattern && pattern.rate > 0.7) {
+            reasoning += `• Continues your strong ${domain} momentum (${Math.round(pattern.rate * 100)}% success rate)\n`;
+        }
+
+        const recentInDomain = user.questMemory?.recentCompletions?.filter(c =>
+            c.domain === domain && !c.skipped
+        ).slice(0, 7) || [];
+
+        if (recentInDomain.length >= 3) {
+            reasoning += `• Builds on your recent ${domain} streak (${recentInDomain.length} in last week)\n`;
+        }
+
+        if (mainQuest.difficulty === user.questMemory?.preferredDifficulty) {
+            reasoning += `• Matched to your ${mainQuest.difficulty} difficulty preference\n`;
+        }
+
+        if (!reasoning) {
+            reasoning = `• Perfect for exploring ${domain} today\n• ${mainQuest.difficulty} difficulty matches your level`;
+        }
+
+        res.json({ mainQuest, reasoning: reasoning.trim() });
+    } catch (error) {
+        console.error('Main quest error:', error);
+        res.status(500).json({ message: 'Error getting main quest' });
+    }
+});
+
 // @route   GET /api/quests
 // @desc    Get user's quests
 // @access  Private
